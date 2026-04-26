@@ -1,0 +1,2 @@
+# goldmine
+my game
