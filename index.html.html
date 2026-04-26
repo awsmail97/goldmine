@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gold Mine Tycoon</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@400;600;700;900&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#1a1200;
+  --panel:#2a1f00;
+  --card:#332800;
+  --border:#5a4200;
+  --gold:#ffd700;
+  --gold2:#ffaa00;
+  --green:#00e676;
+  --red:#ff5252;
+  --text:#fff8e1;
+  --muted:#a08840;
+}
+body{
+  background:var(--bg);
+  font-family:'Nunito',sans-serif;
+  color:var(--text);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  touch-action:none;
+  user-select:none;
+}
+
+/* ── Particle canvas ── */
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0;}
+
+/* ── Game wrapper ── */
+#app{
+  position:relative;
+  width:360px;
+  height:640px;
+  background:linear-gradient(160deg,#1a1200 0%,#2a1a00 50%,#1a0f00 100%);
+  border-radius:24px;
+  overflow:hidden;
+  box-shadow:0 0 60px rgba(255,180,0,0.2),0 0 200px rgba(0,0,0,0.9);
+  border:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  z-index:1;
+}
+
+/* ── Top bar ── */
+#topbar{
+  background:linear-gradient(90deg,#2a1a00,#3d2800,#2a1a00);
+  border-bottom:2px solid var(--border);
+  padding:10px 16px 8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-shrink:0;
+}
+#game-title{
+  font-family:'Lilita One',cursive;
+  font-size:20px;
+  color:var(--gold);
+  text-shadow:0 0 20px rgba(255,215,0,0.5);
+  letter-spacing:1px;
+}
+#coin-display{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:rgba(0,0,0,0.3);
+  padding:5px 12px;
+  border-radius:20px;
+  border:1px solid var(--border);
+}
+.coin-icon{font-size:18px;}
+#coin-count{
+  font-family:'Lilita One',cursive;
+  font-size:18px;
+  color:var(--gold);
+  min-width:70px;
+  text-align:right;
+}
+#cps-display{
+  font-size:10px;
+  color:var(--muted);
+  text-align:center;
+  letter-spacing:1px;
+}
+
+/* ── Click area ── */
+#click-area{
+  flex:0 0 220px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  cursor:pointer;
+}
+
+#mine-btn{
+  position:relative;
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  border:none;
+  background:radial-gradient(circle at 35% 35%,#ffe066,#ffaa00 50%,#cc7700);
+  box-shadow:
+    0 0 0 8px rgba(255,170,0,0.15),
+    0 0 0 16px rgba(255,170,0,0.08),
+    0 8px 32px rgba(255,140,0,0.5),
+    inset 0 4px 12px rgba(255,255,200,0.4),
+    inset 0 -4px 12px rgba(150,80,0,0.4);
+  cursor:pointer;
+  transition:transform 0.08s, box-shadow 0.08s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:64px;
+  animation:breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe{
+  0%,100%{box-shadow:0 0 0 8px rgba(255,170,0,0.15),0 0 0 16px rgba(255,170,0,0.08),0 8px 32px rgba(255,140,0,0.5),inset 0 4px 12px rgba(255,255,200,0.4),inset 0 -4px 12px rgba(150,80,0,0.4);}
+  50%{box-shadow:0 0 0 12px rgba(255,170,0,0.25),0 0 0 24px rgba(255,170,0,0.1),0 12px 48px rgba(255,140,0,0.7),inset 0 4px 12px rgba(255,255,200,0.4),inset 0 -4px 12px rgba(150,80,0,0.4);}
+}
+
+#mine-btn:active, #mine-btn.clicked{
+  transform:scale(0.92);
+  animation:none;
+  box-shadow:0 0 0 4px rgba(255,170,0,0.2),0 4px 16px rgba(255,140,0,0.4),inset 0 4px 12px rgba(255,255,200,0.4),inset 0 -4px 12px rgba(150,80,0,0.4);
+}
+
+#per-click{
+  margin-top:12px;
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:1px;
+}
+#per-click span{color:var(--gold);font-weight:900;}
+
+/* floating +coins */
+.float-coin{
+  position:absolute;
+  font-family:'Lilita One',cursive;
+  font-size:22px;
+  color:var(--gold);
+  text-shadow:0 2px 8px rgba(0,0,0,0.8);
+  pointer-events:none;
+  animation:floatUp 1s ease forwards;
+  z-index:20;
+}
+@keyframes floatUp{
+  0%{opacity:1;transform:translateY(0) scale(1);}
+  100%{opacity:0;transform:translateY(-80px) scale(0.7);}
+}
+
+/* ── Shop ── */
+#shop-section{
+  flex:1;
+  overflow-y:auto;
+  padding:8px 12px;
+  scrollbar-width:none;
+}
+#shop-section::-webkit-scrollbar{display:none;}
+
+#shop-title{
+  font-family:'Lilita One',cursive;
+  font-size:13px;
+  color:var(--muted);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  text-align:center;
+  margin-bottom:8px;
+}
+
+.upgrade-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:10px 12px;
+  margin-bottom:8px;
+  cursor:pointer;
+  transition:all 0.15s;
+  position:relative;
+  overflow:hidden;
+}
+.upgrade-card::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,215,0,0.03),transparent);
+  transform:translateX(-100%);
+  transition:transform 0.4s;
+}
+.upgrade-card:hover::before{transform:translateX(100%);}
+.upgrade-card.affordable{
+  border-color:rgba(255,215,0,0.4);
+  background:linear-gradient(135deg,#332800,#3d3000);
+}
+.upgrade-card.affordable:active{transform:scale(0.97);}
+.upgrade-card.maxed{
+  opacity:0.5;
+  cursor:default;
+}
+
+.upg-icon{
+  font-size:32px;
+  flex-shrink:0;
+  width:44px;
+  text-align:center;
+}
+.upg-info{flex:1;}
+.upg-name{
+  font-weight:900;
+  font-size:14px;
+  color:var(--text);
+}
+.upg-desc{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:1px;
+}
+.upg-owned{
+  font-size:10px;
+  color:var(--green);
+  margin-top:2px;
+  font-weight:700;
+}
+.upg-right{text-align:right;flex-shrink:0;}
+.upg-cost{
+  font-family:'Lilita One',cursive;
+  font-size:15px;
+  color:var(--gold);
+}
+.upg-cost.cant-afford{color:#666;}
+.upg-cost-icon{font-size:12px;}
+
+/* ── Progress bar ── */
+.prog-wrap{
+  height:3px;
+  background:rgba(255,255,255,0.06);
+  border-radius:2px;
+  margin-top:4px;
+  overflow:hidden;
+}
+.prog-bar{
+  height:100%;
+  background:linear-gradient(90deg,var(--gold2),var(--gold));
+  border-radius:2px;
+  transition:width 0.3s;
+}
+
+/* ── Ad banner ── */
+#ad-banner{
+  flex-shrink:0;
+  height:50px;
+  background:rgba(0,0,0,0.4);
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 16px;
+}
+#ad-banner span{
+  font-size:10px;
+  letter-spacing:2px;
+  color:rgba(255,255,255,0.15);
+  text-transform:uppercase;
+}
+#watch-ad-btn{
+  background:linear-gradient(135deg,#ff9500,#ff6600);
+  border:none;
+  color:white;
+  font-family:'Nunito',sans-serif;
+  font-weight:900;
+  font-size:11px;
+  padding:6px 14px;
+  border-radius:20px;
+  cursor:pointer;
+  letter-spacing:1px;
+  box-shadow:0 2px 10px rgba(255,100,0,0.4);
+}
+#watch-ad-btn:active{transform:scale(0.95);}
+
+/* ── Toast ── */
+#toast{
+  position:absolute;
+  bottom:70px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.85);
+  color:var(--green);
+  font-weight:700;
+  font-size:13px;
+  padding:8px 20px;
+  border-radius:20px;
+  border:1px solid var(--green);
+  opacity:0;
+  pointer-events:none;
+  z-index:50;
+  white-space:nowrap;
+  transition:opacity 0.3s;
+}
+#toast.show{opacity:1;}
+
+/* ── Milestone badge ── */
+#milestone{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(0);
+  background:linear-gradient(135deg,#ffd700,#ff8800);
+  color:#1a1200;
+  font-family:'Lilita One',cursive;
+  font-size:18px;
+  padding:16px 28px;
+  border-radius:16px;
+  text-align:center;
+  z-index:100;
+  pointer-events:none;
+  box-shadow:0 8px 40px rgba(255,140,0,0.6);
+  transition:transform 0.3s cubic-bezier(.34,1.56,.64,1),opacity 0.3s;
+  opacity:0;
+}
+#milestone.show{transform:translate(-50%,-50%) scale(1);opacity:1;}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div id="game-title">⛏️ GOLD MINE</div>
+    <div>
+      <div id="coin-display">
+        <span class="coin-icon">🪙</span>
+        <span id="coin-count">0</span>
+      </div>
+      <div id="cps-display">+<span id="cps-val">0</span>/sec</div>
+    </div>
+  </div>
+
+  <!-- Click button -->
+  <div id="click-area">
+    <button id="mine-btn">⛏️</button>
+    <div id="per-click">Tap = <span id="click-power">1</span> coin</div>
+  </div>
+
+  <!-- Shop -->
+  <div id="shop-section">
+    <div id="shop-title">⬆ Upgrades</div>
+    <div id="upgrade-list"></div>
+  </div>
+
+  <!-- Ad banner -->
+  <div id="ad-banner">
+    <span>AdMob Banner Ad</span>
+    <button id="watch-ad-btn">🎬 Watch Ad → ×2 for 30s</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Milestone -->
+  <div id="milestone"></div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════
+const save = JSON.parse(localStorage.getItem('goldmine') || 'null');
+
+let coins      = save?.coins      ?? 0;
+let totalEarned= save?.totalEarned?? 0;
+let clickPower = save?.clickPower ?? 1;
+let cps        = 0; // calculated
+let adBoost    = false;
+let adBoostTimer = 0;
+
+// Upgrades config
+const UPGRADES = [
+  { id:'pickaxe',  icon:'⛏️',  name:'Better Pickaxe', desc:'+1 per tap',      baseCost:15,   costMult:1.5,  maxLevel:20, effect:'click', value:1  },
+  { id:'shovel',   icon:'🪣',  name:'Gold Shovel',    desc:'+2 per tap',      baseCost:80,   costMult:1.6,  maxLevel:15, effect:'click', value:2  },
+  { id:'miner',    icon:'👷',  name:'Hire a Miner',   desc:'+1 coin/sec',     baseCost:50,   costMult:1.5,  maxLevel:20, effect:'cps',   value:1  },
+  { id:'cart',     icon:'🛒',  name:'Mine Cart',      desc:'+3 coins/sec',    baseCost:200,  costMult:1.6,  maxLevel:15, effect:'cps',   value:3  },
+  { id:'dynamite', icon:'💥',  name:'Dynamite',       desc:'+5 per tap',      baseCost:500,  costMult:1.7,  maxLevel:10, effect:'click', value:5  },
+  { id:'drill',    icon:'🔩',  name:'Power Drill',    desc:'+10 coins/sec',   baseCost:1000, costMult:1.8,  maxLevel:10, effect:'cps',   value:10 },
+  { id:'machine',  icon:'🏭',  name:'Mining Machine', desc:'+25 coins/sec',   baseCost:5000, costMult:2.0,  maxLevel:8,  effect:'cps',   value:25 },
+  { id:'robot',    icon:'🤖',  name:'Gold Robot',     desc:'+50 coins/sec',   baseCost:20000,costMult:2.2,  maxLevel:5,  effect:'cps',   value:50 },
+];
+
+// Load levels
+const levels = save?.levels ?? {};
+UPGRADES.forEach(u => { if(levels[u.id]===undefined) levels[u.id]=0; });
+
+function calcCost(u) {
+  return Math.floor(u.baseCost * Math.pow(u.costMult, levels[u.id]));
+}
+
+function recalcStats() {
+  clickPower = 1;
+  cps = 0;
+  UPGRADES.forEach(u => {
+    const lvl = levels[u.id];
+    if (lvl === 0) return;
+    if (u.effect === 'click') clickPower += u.value * lvl;
+    if (u.effect === 'cps')   cps        += u.value * lvl;
+  });
+  document.getElementById('click-power').textContent = adBoost ? clickPower*2 : clickPower;
+  document.getElementById('cps-val').textContent = formatNum(adBoost ? cps*2 : cps);
+}
+
+function formatNum(n) {
+  if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toString();
+}
+
+// ════════════════════════════════════════
+//  SAVE
+// ════════════════════════════════════════
+function saveGame() {
+  localStorage.setItem('goldmine', JSON.stringify({ coins, totalEarned, clickPower, levels }));
+}
+
+// ════════════════════════════════════════
+//  RENDER UPGRADES
+// ════════════════════════════════════════
+function renderUpgrades() {
+  const list = document.getElementById('upgrade-list');
+  list.innerHTML = '';
+  UPGRADES.forEach(u => {
+    const lvl  = levels[u.id];
+    const cost = calcCost(u);
+    const maxed = lvl >= u.maxLevel;
+    const can  = coins >= cost && !maxed;
+
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (can ? ' affordable' : '') + (maxed ? ' maxed' : '');
+    card.innerHTML = `
+      <div class="upg-icon">${u.icon}</div>
+      <div class="upg-info">
+        <div class="upg-name">${u.name}</div>
+        <div class="upg-desc">${u.desc}</div>
+        ${lvl>0 ? `<div class="upg-owned">Owned: ${lvl}/${u.maxLevel}</div>` : ''}
+        <div class="prog-wrap"><div class="prog-bar" style="width:${(lvl/u.maxLevel)*100}%"></div></div>
+      </div>
+      <div class="upg-right">
+        ${maxed
+          ? `<div class="upg-cost" style="color:var(--green);font-size:12px;">MAX!</div>`
+          : `<div class="upg-cost ${can?'':'cant-afford'}">🪙${formatNum(cost)}</div>`
+        }
+      </div>
+    `;
+    if (!maxed) {
+      card.addEventListener('click', () => buyUpgrade(u));
+      card.addEventListener('touchstart', e => { e.preventDefault(); buyUpgrade(u); }, {passive:false});
+    }
+    list.appendChild(card);
+  });
+}
+
+function buyUpgrade(u) {
+  const cost = calcCost(u);
+  if (coins < cost || levels[u.id] >= u.maxLevel) return;
+  coins -= cost;
+  levels[u.id]++;
+  recalcStats();
+  renderUpgrades();
+  updateCoinDisplay();
+  showToast(`${u.icon} ${u.name} upgraded! (Lv ${levels[u.id]})`);
+  saveGame();
+}
+
+// ════════════════════════════════════════
+//  CLICK
+// ════════════════════════════════════════
+const mineBtn = document.getElementById('mine-btn');
+const clickArea = document.getElementById('click-area');
+
+function doClick(e) {
+  const power = adBoost ? clickPower * 2 : clickPower;
+  coins += power;
+  totalEarned += power;
+  updateCoinDisplay();
+
+  // Flash button
+  mineBtn.classList.add('clicked');
+  setTimeout(() => mineBtn.classList.remove('clicked'), 80);
+
+  // Floating +N
+  const rect = clickArea.getBoundingClientRect();
+  const appRect = document.getElementById('app').getBoundingClientRect();
+  const x = (e.touches ? e.touches[0].clientX : e.clientX) - appRect.left;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY) - appRect.top;
+  spawnFloat(x, y, '+' + formatNum(power));
+
+  // Particle burst
+  spawnParticles(e.touches ? e.touches[0].clientX : e.clientX,
+                 e.touches ? e.touches[0].clientY : e.clientY);
+
+  checkMilestones();
+  saveGame();
+}
+
+mineBtn.addEventListener('click', doClick);
+mineBtn.addEventListener('touchstart', e => { e.preventDefault(); doClick(e); }, {passive:false});
+
+// ════════════════════════════════════════
+//  FLOATING COIN TEXT
+// ════════════════════════════════════════
+function spawnFloat(x, y, text) {
+  const el = document.createElement('div');
+  el.className = 'float-coin';
+  el.textContent = text;
+  el.style.left = (x - 20) + 'px';
+  el.style.top  = (y - 20) + 'px';
+  document.getElementById('app').appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// ════════════════════════════════════════
+//  PARTICLES
+// ════════════════════════════════════════
+const pCanvas = document.getElementById('particles');
+const pCtx = pCanvas.getContext('2d');
+pCanvas.width = window.innerWidth;
+pCanvas.height = window.innerHeight;
+
+let particleList = [];
+
+function spawnParticles(x, y) {
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 / 8) * i + (Math.random()-0.5)*0.5;
+    particleList.push({
+      x, y,
+      vx: Math.cos(angle) * (2+Math.random()*3),
+      vy: Math.sin(angle) * (2+Math.random()*3) - 2,
+      life: 1,
+      size: 3+Math.random()*4,
+      color: Math.random()>0.5?'#ffd700':'#ffaa00'
+    });
+  }
+}
+
+function animParticles() {
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  particleList = particleList.filter(p => p.life > 0);
+  for (const p of particleList) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.04;
+    pCtx.globalAlpha = p.life;
+    pCtx.fillStyle = p.color;
+    pCtx.beginPath();
+    pCtx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    pCtx.fill();
+  }
+  pCtx.globalAlpha = 1;
+  requestAnimationFrame(animParticles);
+}
+animParticles();
+
+// ════════════════════════════════════════
+//  AUTO INCOME (every second)
+// ════════════════════════════════════════
+setInterval(() => {
+  const income = adBoost ? cps * 2 : cps;
+  if (income > 0) {
+    coins += income;
+    totalEarned += income;
+    updateCoinDisplay();
+    checkMilestones();
+  }
+  if (adBoost) {
+    adBoostTimer--;
+    if (adBoostTimer <= 0) {
+      adBoost = false;
+      recalcStats();
+      showToast('⏰ Ad boost ended!');
+    }
+  }
+  saveGame();
+}, 1000);
+
+// ════════════════════════════════════════
+//  COIN DISPLAY
+// ════════════════════════════════════════
+function updateCoinDisplay() {
+  document.getElementById('coin-count').textContent = formatNum(coins);
+  renderUpgrades();
+}
+
+// ════════════════════════════════════════
+//  AD BOOST BUTTON
+// ════════════════════════════════════════
+document.getElementById('watch-ad-btn').addEventListener('click', () => {
+  // In real app: show AdMob rewarded video here
+  // On completion callback → give reward
+  adBoost = true;
+  adBoostTimer = 30;
+  recalcStats();
+  showToast('🎬 2× boost active for 30 seconds!');
+  showMilestone('🎬 2× BOOST\nACTIVATED!');
+});
+
+// ════════════════════════════════════════
+//  MILESTONES
+// ════════════════════════════════════════
+let lastMilestone = save?.lastMilestone ?? 0;
+const MILESTONES = [100,500,1000,5000,10000,50000,100000,500000,1000000];
+
+function checkMilestones() {
+  for (const m of MILESTONES) {
+    if (totalEarned >= m && lastMilestone < m) {
+      lastMilestone = m;
+      showMilestone('🏆 ' + formatNum(m) + '\nCOINS EARNED!');
+    }
+  }
+}
+
+function showMilestone(text) {
+  const el = document.getElementById('milestone');
+  el.textContent = text;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+recalcStats();
+renderUpgrades();
+updateCoinDisplay();
+</script>
+</body>
+</html>
